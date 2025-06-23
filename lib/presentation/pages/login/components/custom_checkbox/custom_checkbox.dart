@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CustomCheckbox extends StatefulWidget {
   /// 多选框按钮
@@ -55,6 +56,7 @@ class _CustomCheckboxState extends State<CustomCheckbox> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        HapticFeedback.selectionClick();
         widget.onChanged!(widget.value);
       },
       child: AnimatedContainer(

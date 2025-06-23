@@ -12,6 +12,9 @@ class WeeklyJournalTable extends Table {  // 继承 Table 类，表示这是一�
   // 作者ID
   IntColumn get writerId => integer()();
 
+  // 年份
+  IntColumn get year => integer()();
+
   // 周数
   IntColumn get weekNumber => integer()();
 
@@ -41,4 +44,11 @@ class WeeklyJournalTable extends Table {  // 继承 Table 类，表示这是一�
 
   // 删除时间
   DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    // 作者ID + 年份 + 周数的唯一索引
+    // 确保同一作者在同一年的同一周只能有一篇周记
+    {writerId, year, weekNumber},
+  ];
 }

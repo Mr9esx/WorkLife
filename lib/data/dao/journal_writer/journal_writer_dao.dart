@@ -2,31 +2,22 @@ import 'package:WeekLife/data/models/journal_writer/journal_writer_data.dart';
 import 'package:WeekLife/common/validators/writer_validator.dart';
 import 'package:WeekLife/common/exceptions/writer_exceptions.dart';
 import 'package:WeekLife/data/dao/journal_writer/interfaces/journal_writer_dao_interface.dart';
-import 'package:WeekLife/data/repositories/journal_writer/journal_writer_repo.dart';
+import 'package:WeekLife/data/database/app_database.dart';
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 
 /// Writer 数据访问对象
 /// 提供 Writer 表的所有数据库操作方法
 class JournalWriterDao implements IJournalWriterDao {
-  final JournalWriterRepo _db;
+  final AppDatabase _db;
 
-  JournalWriterDao(JournalWriterRepo db) : _db = db;
+  JournalWriterDao(AppDatabase db) : _db = db;
 
   /// 创建新的 Writer
-  /// 
-  /// [username] 用户名（必填）
-  /// [gender] 性别（必填，1:男，2:女）
-  /// [birthDay] 生日（必填，格式：YYYYMMDD）
-  /// [avatar] 头像（可选）
-  /// [birthPlace] 出生地（可选）
-  /// 
-  /// 返回新创建的 Writer 的 ID
-  /// 
-  /// 可能抛出的异常：
-  /// - [WriterValidationException] 数据验证失败
-  /// - [WriterDatabaseException] 数据库操作失败
   @override
   Future<int> createWriter({
     required String username,
+    required int currentWriter,
     required int gender,
     required DateTime birthDay,
     String? avatar,
@@ -46,17 +37,19 @@ class JournalWriterDao implements IJournalWriterDao {
       }
 
       // 创建 Writer 记录
-      final writer = await _db.createWriter(
-        JournalWriterData(
-          username: username,
-          gender: gender,
-          birthDay: birthDay,
-          avatar: avatar,
-          birthPlace: birthPlace,
-          createdAt: DateTime.now(),
-        ),
-      );
-      return writer.id!;
+      final now = DateTime.now();
+      final id = await _db.into(_db.journalWriterTable).insert(
+            JournalWriterTableCompanion.insert(
+              username: username,
+              currentWriter: currentWriter,
+              gender: gender,
+              birthDay: birthDay,
+              avatar: Value(avatar),
+              birthPlace: Value(birthPlace),
+              createdAt: Value(now),
+            ),
+          );
+      return id;
     } on WriterValidationException {
       rethrow;
     } catch (e) {
@@ -64,75 +57,118 @@ class JournalWriterDao implements IJournalWriterDao {
     }
   }
 
-  /// 批量创建 Writer
-  /// 
-  /// [writerMaps] Writer 数据列表
-  /// 返回新创建的 Writer 的 ID 列表
-  /// 
-  /// 可能抛出的异常：
-  /// - [WriterValidationException] 数据验证失败
-  /// - [WriterDatabaseException] 数据库操作失败
+  /// 设置当前 Writer
   @override
-  Future<List<int>> createWriters(List<Map<String, dynamic>> writerMaps) async {
-    return await _db.transaction(() async {
-      // 使用 Future.wait 并行处理验证
-      await Future.wait(
-        writerMaps.map((w) => _validateWriterDataAsync(w))
-      );
-      
-      // 批量插入
-      final writers = writerMaps.map(_toWriterData).toList();
-      return (await _db.createWriters(writers)).map((w) => w.id!).toList();
-    });
-  }
-
-  /// 根据 ID 获取 Writer
-  /// 
-  /// [id] Writer 的 ID
-  /// 返回 Writer 对象，如果不存在则返回 null
-  /// 
-  /// 可能抛出的异常：
-  /// - [WriterDatabaseException] 数据库操作失败
-  @override
-  Future<JournalWriterData?> getWriterById(int id) async {
+  Future<Error> setCurrentWriter(int id) async {
     try {
-      final writers = await _db.queryWriters(JournalWriterQuery(id: id));
-      return writers.isEmpty ? null : writers.first;
+      // 检查目标用户是否存在
+      final targetWriter = await getWriterById(id);
+      if (targetWriter == null) {
+        throw WriterValidationException('作家不存在');
+      }
+
+      // 如果目标用户已经是当前用户，直接返回
+      if (targetWriter.currentWriter == 1) {
+        return Error();
+      }
+
+      // 先找到当前用户并将其设置为 0
+      try {
+        final currentWriter = await getCurrentWriter();
+        if (currentWriter.id != null) {
+          await updateWriter(currentWriter.id!, {'currentWriter': 0});
+        }
+      } catch (e) {
+        // 如果没有找到当前用户，忽略错误继续执行
+      }
+
+      // 设置指定用户为当前用户
+      await updateWriter(id, {'currentWriter': 1});
+      return Error();
     } catch (e) {
-      throw WriterDatabaseException('获取作家信息失败: $e');
+      throw WriterDatabaseException('设置当前作家失败: $e');
     }
   }
 
-  /// 根据用户名获取 Writer
-  /// 
-  /// [username] 用户名
-  /// 返回 Writer 对象，如果不存在则返回 null
-  /// 
-  /// 可能抛出的异常：
-  /// - [WriterValidationException] 用户名格式无效
-  /// - [WriterDatabaseException] 数据库操作失败
+  /// 获取当前 Writer
   @override
-  Future<JournalWriterData?> getWriterByUsername(String username) async {
+  Future<JournalWriterData> getCurrentWriter() async {
     try {
-      _validateUsername(username);
-      final writers = await _db.queryWriters(JournalWriterQuery(username: username));
-      return writers.isEmpty ? null : writers.first;
-    } on WriterValidationException {
-      rethrow;
+      final writers = await (_db.select(_db.journalWriterTable)..where((t) => t.currentWriter.equals(1))).get();
+
+      if (writers.isEmpty) {
+        // 检查数据库是否为空
+        final writerCount = await getWriterCount();
+        if (writerCount > 0) {
+          // 数据库不为空但没有当前作家，创建默认作家
+          print('⚠️ 数据库中有 $writerCount 个作家，但未找到当前作家，正在创建默认作家...');
+          return await _createDefaultWriter();
+        } else {
+          // 数据库为空，也尝试创建默认作家
+          print('⚠️ 数据库为空，正在创建默认作家...');
+          return await _createDefaultWriter();
+        }
+      }
+      return _convertToJournalWriterData(writers.first);
+    } catch (e) {
+      if (e is WriterDatabaseException) {
+        rethrow;
+      }
+      throw WriterDatabaseException('获取当前作家失败: $e');
+    }
+  }
+
+  /// 在开发模式下创建默认作家
+  ///
+  /// 仅在开发模式下可用，用于重试时创建默认作家
+  /// 返回创建的默认作家数据
+  Future<JournalWriterData> createDefaultWriterInDevMode() async {
+    if (!kDebugMode) {
+      throw WriterDatabaseException('此方法仅在开发模式下可用');
+    }
+
+    try {
+      // 检查是否已存在当前作家
+      try {
+        final currentWriter = await getCurrentWriter();
+        return currentWriter;
+      } catch (e) {
+        // 如果没有找到当前作家，继续创建
+      }
+
+      // 创建默认作家
+      final defaultWriter = await createWriter(
+        username: '默认作家',
+        currentWriter: 1,
+        gender: 0,
+        birthDay: DateTime(2000, 1, 1),
+        avatar: null,
+        birthPlace: '未知',
+      );
+
+      final newWriter = await getWriterById(defaultWriter);
+      if (newWriter == null) {
+        throw WriterDatabaseException('创建默认作家失败');
+      }
+
+      return newWriter;
+    } catch (e) {
+      throw WriterDatabaseException('创建默认作家失败: $e');
+    }
+  }
+
+  /// 根据 ID 获取 Writer
+  @override
+  Future<JournalWriterData?> getWriterById(int id) async {
+    try {
+      final writers = await (_db.select(_db.journalWriterTable)..where((t) => t.id.equals(id))).get();
+      return writers.isEmpty ? null : _convertToJournalWriterData(writers.first);
     } catch (e) {
       throw WriterDatabaseException('获取作家信息失败: $e');
     }
   }
 
   /// 获取所有 Writer
-  /// 
-  /// [limit] 限制返回数量（可选）
-  /// [offset] 偏移量（可选）
-  /// [orderBy] 排序方式（可选，默认按创建时间倒序）
-  /// 返回 Writer 列表
-  /// 
-  /// 可能抛出的异常：
-  /// - [WriterDatabaseException] 数据库操作失败
   @override
   Future<List<JournalWriterData>> getAllWriters({
     int? limit,
@@ -141,26 +177,48 @@ class JournalWriterDao implements IJournalWriterDao {
     bool? orderDesc,
   }) async {
     try {
-      return await _db.queryWriters(JournalWriterQuery(
-        limit: limit,
-        offset: offset,
-        orderBy: orderBy,
-        orderDesc: orderDesc,
-      ));
+      var query = _db.select(_db.journalWriterTable);
+
+      // 应用排序
+      if (orderBy != null) {
+        Expression<Object> Function($JournalWriterTableTable) getOrderColumn() {
+          switch (orderBy) {
+            case 'id':
+              return (t) => t.id;
+            case 'username':
+              return (t) => t.username;
+            case 'currentWriter':
+              return (t) => t.currentWriter;
+            case 'createdAt':
+              return (t) => t.createdAt;
+            case 'updatedAt':
+              return (t) => t.updatedAt;
+            default:
+              return (t) => t.createdAt;
+          }
+        }
+
+        final orderColumn = getOrderColumn();
+        final orderMode = orderDesc == true ? OrderingMode.desc : OrderingMode.asc;
+        query = query
+          ..orderBy([
+            (t) => orderMode == OrderingMode.desc ? OrderingTerm.desc(orderColumn(t)) : OrderingTerm.asc(orderColumn(t))
+          ]);
+      }
+
+      // 应用分页
+      if (limit != null) {
+        query = query..limit(limit, offset: offset);
+      }
+
+      final writers = await query.get();
+      return writers.map(_convertToJournalWriterData).toList();
     } catch (e) {
       throw WriterDatabaseException('获取作家列表失败: $e');
     }
   }
 
   /// 更新 Writer
-  /// 
-  /// [id] Writer 的 ID
-  /// [updates] 要更新的字段
-  /// 返回是否更新成功
-  /// 
-  /// 可能抛出的异常：
-  /// - [WriterValidationException] 数据验证失败
-  /// - [WriterDatabaseException] 数据库操作失败
   @override
   Future<bool> updateWriter(int id, Map<String, dynamic> updates) async {
     try {
@@ -175,7 +233,8 @@ class JournalWriterDao implements IJournalWriterDao {
         final username = updates['username'] as String;
         _validateUsername(username);
         // 检查新用户名是否与其他作家重复
-        final existingWriters = await _db.queryWriters(JournalWriterQuery(username: username));
+        final existingWriters =
+            await (_db.select(_db.journalWriterTable)..where((t) => t.username.equals(username))).get();
         if (existingWriters.isNotEmpty && existingWriters.first.id != id) {
           throw WriterValidationException('用户名已存在');
         }
@@ -187,39 +246,28 @@ class JournalWriterDao implements IJournalWriterDao {
         _validateBirthDay(updates['birthDay'] as DateTime);
       }
 
-      // 更新数据
-      final updatedData = JournalWriterData(
-        id: id,
-        username: updates['username'] as String? ?? writer.username,
-        gender: updates.containsKey('gender') 
-          ? (updates['gender'] as int)
-          : writer.gender,
-        birthDay: updates.containsKey('birthDay')
-          ? updates['birthDay'] as DateTime
-          : writer.birthDay,
-        avatar: updates['avatar'] as String? ?? writer.avatar,
-        birthPlace: updates['birthPlace'] as String? ?? writer.birthPlace,
-        createdAt: writer.createdAt,
-        updatedAt: DateTime.now(),
+      // 构建更新数据
+      final companion = JournalWriterTableCompanion(
+        username: updates.containsKey('username') ? Value(updates['username'] as String) : const Value.absent(),
+        currentWriter:
+            updates.containsKey('currentWriter') ? Value(updates['currentWriter'] as int) : const Value.absent(),
+        gender: updates.containsKey('gender') ? Value(updates['gender'] as int) : const Value.absent(),
+        birthDay: updates.containsKey('birthDay') ? Value(updates['birthDay'] as DateTime) : const Value.absent(),
+        avatar: updates.containsKey('avatar') ? Value(updates['avatar'] as String?) : const Value.absent(),
+        birthPlace: updates.containsKey('birthPlace') ? Value(updates['birthPlace'] as String?) : const Value.absent(),
+        updatedAt: Value(DateTime.now()),
       );
 
-      final result = await _db.updateWriter(id, updatedData);
+      final result = await (_db.update(_db.journalWriterTable)..where((t) => t.id.equals(id))).write(companion);
       return result > 0;
     } on WriterValidationException {
       rethrow;
     } catch (e) {
-      throw WriterDatabaseException('更新作家信息失败: $e');
+      throw WriterDatabaseException('更新作家失败: $e');
     }
   }
 
   /// 删除 Writer
-  /// 
-  /// [id] Writer 的 ID
-  /// 返回是否删除成功
-  /// 
-  /// 可能抛出的异常：
-  /// - [WriterValidationException] 作家不存在
-  /// - [WriterDatabaseException] 数据库操作失败
   @override
   Future<bool> deleteWriter(int id) async {
     try {
@@ -229,7 +277,7 @@ class JournalWriterDao implements IJournalWriterDao {
         throw WriterValidationException('作家不存在');
       }
 
-      final result = await _db.deleteWriter(id);
+      final result = await (_db.delete(_db.journalWriterTable)..where((t) => t.id.equals(id))).go();
       return result > 0;
     } on WriterValidationException {
       rethrow;
@@ -238,78 +286,91 @@ class JournalWriterDao implements IJournalWriterDao {
     }
   }
 
-  /// 验证 Writer 数据
+  /// 获取 Writer 数量
+  @override
+  Future<int> getWriterCount() async {
+    try {
+      final query = _db.selectOnly(_db.journalWriterTable)..addColumns([_db.journalWriterTable.id.count()]);
+      final result = await query.getSingle();
+      return result.read(_db.journalWriterTable.id.count()) ?? 0;
+    } catch (e) {
+      throw WriterDatabaseException('获取作家数量失败: $e');
+    }
+  }
+
+  // 私有方法：转换数据库实体到数据模型
+  JournalWriterData _convertToJournalWriterData(JournalWriter dbWriter) {
+    return JournalWriterData(
+      id: dbWriter.id,
+      username: dbWriter.username,
+      currentWriter: dbWriter.currentWriter,
+      gender: dbWriter.gender,
+      birthDay: dbWriter.birthDay,
+      avatar: dbWriter.avatar,
+      birthPlace: dbWriter.birthPlace,
+      createdAt: dbWriter.createdAt,
+      updatedAt: dbWriter.updatedAt,
+    );
+  }
+
+  // 私有验证方法
   void _validateWriterData({
     required String username,
     required int gender,
     required DateTime birthDay,
   }) {
-    WriterValidator.validateUsername(username);
-    WriterValidator.validateGender(gender);
-    WriterValidator.validateBirthDay(birthDay);
+    _validateUsername(username);
+    _validateGender(gender);
+    _validateBirthDay(birthDay);
   }
 
-  /// 验证用户名
   void _validateUsername(String username) {
     WriterValidator.validateUsername(username);
   }
 
-  /// 验证性别
   void _validateGender(int gender) {
     WriterValidator.validateGender(gender);
   }
 
-  /// 验证生日
   void _validateBirthDay(DateTime birthDay) {
     WriterValidator.validateBirthDay(birthDay);
   }
 
-  Future<void> _validateWriterDataAsync(Map<String, dynamic> writerMap) async {
-    await Future.wait([
-      Future(() => WriterValidator.validateUsername(writerMap['username'] as String)),
-      Future(() => WriterValidator.validateGender(writerMap['gender'] as int)),
-      Future(() => WriterValidator.validateBirthDay(
-        DateTime(
-          (writerMap['birthDay'] as int) ~/ 10000,
-          ((writerMap['birthDay'] as int) % 10000) ~/ 100,
-          (writerMap['birthDay'] as int) % 100,
-        ),
-      )),
-    ]);
-  }
-
-  JournalWriterData _toWriterData(Map<String, dynamic> writerMap) {
-    return JournalWriterData(
-      username: writerMap['username'] as String,
-      gender: writerMap['gender'] as int,
-      birthDay: DateTime(
-        (writerMap['birthDay'] as int) ~/ 10000,
-        ((writerMap['birthDay'] as int) % 10000) ~/ 100,
-        (writerMap['birthDay'] as int) % 100,
-      ),
-      avatar: writerMap['avatar'] as String?,
-      birthPlace: writerMap['birthPlace'] as String?,
-      createdAt: DateTime.now(),
-    );
-  }
-
   /// 检查用户名是否已存在
   Future<bool> _checkUsernameExists(String username) async {
-    final existingWriters = await _db.queryWriters(JournalWriterQuery(username: username));
+    final existingWriters = await (_db.select(_db.journalWriterTable)..where((t) => t.username.equals(username))).get();
     return existingWriters.isNotEmpty;
   }
-}
 
-/// 排序方式枚举
-enum OrderBy {
-  createdAtDesc,  // 创建时间倒序
-  createdAtAsc,   // 创建时间正序
-  usernameAsc,    // 用户名正序
-  usernameDesc,   // 用户名倒序
-}
+  /// 创建默认作家（私有方法）
+  ///
+  /// 当数据库不为空但未找到当前作家时，自动创建一个默认作家
+  /// 返回创建的默认作家数据
+  Future<JournalWriterData> _createDefaultWriter() async {
+    try {
+      print('📝 开始创建默认作家...');
 
-abstract class IWriterRepository {
-  Future<JournalWriterData> createWriter(JournalWriterData writer);
-  Future<List<JournalWriterData>> queryWriters(JournalWriterQuery query);
-  // ...
-} 
+      // 创建默认作家
+      final defaultWriterId = await createWriter(
+        username: '默认作家',
+        currentWriter: 1,
+        gender: 1, // 1表示男性（符合验证规则）
+        birthDay: DateTime(2000, 1, 1),
+        avatar: null,
+        birthPlace: '未知',
+      );
+
+      // 获取创建的作家信息
+      final newWriter = await getWriterById(defaultWriterId);
+      if (newWriter == null) {
+        throw WriterDatabaseException('创建默认作家失败：无法获取新创建的作家信息');
+      }
+
+      print('✅ 默认作家创建成功，ID: $defaultWriterId, 用户名: ${newWriter.username}');
+      return newWriter;
+    } catch (e) {
+      print('❌ 创建默认作家失败: $e');
+      throw WriterDatabaseException('创建默认作家失败: $e');
+    }
+  }
+}

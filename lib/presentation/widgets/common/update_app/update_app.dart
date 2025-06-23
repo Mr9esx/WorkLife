@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -66,9 +67,7 @@ class _UpdateAppVersionState extends State<UpdateAppVersion> {
       // 安卓apk下载地址
       String url = widget.androidUrl;
       try {
-        OtaUpdate()
-            .execute(url, destinationFilename: widget.filename ?? 'flutter.apk')
-            .listen(
+        OtaUpdate().execute(url, destinationFilename: widget.filename ?? 'flutter.apk').listen(
           (OtaEvent event) {
             switch (event.status) {
               case OtaStatus.DOWNLOADING: // 下载中
@@ -182,11 +181,11 @@ class _UpdateAppVersionState extends State<UpdateAppVersion> {
       height: 76.w,
       child: ElevatedButton(
         style: ButtonStyle(
-          backgroundColor: MaterialStateProperty.all(
+          backgroundColor: WidgetStateProperty.all(
             const Color(0xff009FF9),
           ),
-          elevation: MaterialStateProperty.all(4),
-          shape: MaterialStateProperty.all(
+          elevation: WidgetStateProperty.all(4),
+          shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
             ),
@@ -201,6 +200,7 @@ class _UpdateAppVersionState extends State<UpdateAppVersion> {
           ),
         ),
         onPressed: () {
+          HapticFeedback.selectionClick();
           _updateVersion(); // 版本检查及升级
           setState(() {
             downloadFlag = true;

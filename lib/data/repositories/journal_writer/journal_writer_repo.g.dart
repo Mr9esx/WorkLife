@@ -26,6 +26,14 @@ class $JournalWriterTableTable extends JournalWriterTable
       type: DriftSqlType.string,
       requiredDuringInsert: true,
       defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _currentWriterMeta =
+      const VerificationMeta('currentWriter');
+  @override
+  late final GeneratedColumn<int> currentWriter = GeneratedColumn<int>(
+      'current_writer', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
   static const VerificationMeta _genderMeta = const VerificationMeta('gender');
   @override
   late final GeneratedColumn<int> gender = GeneratedColumn<int>(
@@ -66,6 +74,7 @@ class $JournalWriterTableTable extends JournalWriterTable
   List<GeneratedColumn> get $columns => [
         id,
         username,
+        currentWriter,
         gender,
         birthDay,
         avatar,
@@ -91,6 +100,14 @@ class $JournalWriterTableTable extends JournalWriterTable
           username.isAcceptableOrUnknown(data['username']!, _usernameMeta));
     } else if (isInserting) {
       context.missing(_usernameMeta);
+    }
+    if (data.containsKey('current_writer')) {
+      context.handle(
+          _currentWriterMeta,
+          currentWriter.isAcceptableOrUnknown(
+              data['current_writer']!, _currentWriterMeta));
+    } else if (isInserting) {
+      context.missing(_currentWriterMeta);
     }
     if (data.containsKey('gender')) {
       context.handle(_genderMeta,
@@ -135,6 +152,8 @@ class $JournalWriterTableTable extends JournalWriterTable
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       username: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}username'])!,
+      currentWriter: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}current_writer'])!,
       gender: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}gender'])!,
       birthDay: attachedDatabase.typeMapping
@@ -159,6 +178,7 @@ class $JournalWriterTableTable extends JournalWriterTable
 class JournalWriter extends DataClass implements Insertable<JournalWriter> {
   final int id;
   final String username;
+  final int currentWriter;
   final int gender;
   final DateTime birthDay;
   final String? avatar;
@@ -168,6 +188,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
   const JournalWriter(
       {required this.id,
       required this.username,
+      required this.currentWriter,
       required this.gender,
       required this.birthDay,
       this.avatar,
@@ -179,6 +200,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['username'] = Variable<String>(username);
+    map['current_writer'] = Variable<int>(currentWriter);
     map['gender'] = Variable<int>(gender);
     map['birth_day'] = Variable<DateTime>(birthDay);
     if (!nullToAbsent || avatar != null) {
@@ -198,6 +220,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
     return JournalWriterTableCompanion(
       id: Value(id),
       username: Value(username),
+      currentWriter: Value(currentWriter),
       gender: Value(gender),
       birthDay: Value(birthDay),
       avatar:
@@ -218,6 +241,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
     return JournalWriter(
       id: serializer.fromJson<int>(json['id']),
       username: serializer.fromJson<String>(json['username']),
+      currentWriter: serializer.fromJson<int>(json['currentWriter']),
       gender: serializer.fromJson<int>(json['gender']),
       birthDay: serializer.fromJson<DateTime>(json['birthDay']),
       avatar: serializer.fromJson<String?>(json['avatar']),
@@ -232,6 +256,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'username': serializer.toJson<String>(username),
+      'currentWriter': serializer.toJson<int>(currentWriter),
       'gender': serializer.toJson<int>(gender),
       'birthDay': serializer.toJson<DateTime>(birthDay),
       'avatar': serializer.toJson<String?>(avatar),
@@ -244,6 +269,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
   JournalWriter copyWith(
           {int? id,
           String? username,
+          int? currentWriter,
           int? gender,
           DateTime? birthDay,
           Value<String?> avatar = const Value.absent(),
@@ -253,6 +279,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
       JournalWriter(
         id: id ?? this.id,
         username: username ?? this.username,
+        currentWriter: currentWriter ?? this.currentWriter,
         gender: gender ?? this.gender,
         birthDay: birthDay ?? this.birthDay,
         avatar: avatar.present ? avatar.value : this.avatar,
@@ -264,6 +291,9 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
     return JournalWriter(
       id: data.id.present ? data.id.value : this.id,
       username: data.username.present ? data.username.value : this.username,
+      currentWriter: data.currentWriter.present
+          ? data.currentWriter.value
+          : this.currentWriter,
       gender: data.gender.present ? data.gender.value : this.gender,
       birthDay: data.birthDay.present ? data.birthDay.value : this.birthDay,
       avatar: data.avatar.present ? data.avatar.value : this.avatar,
@@ -279,6 +309,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
     return (StringBuffer('JournalWriter(')
           ..write('id: $id, ')
           ..write('username: $username, ')
+          ..write('currentWriter: $currentWriter, ')
           ..write('gender: $gender, ')
           ..write('birthDay: $birthDay, ')
           ..write('avatar: $avatar, ')
@@ -290,14 +321,15 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, username, gender, birthDay, avatar, birthPlace, createdAt, updatedAt);
+  int get hashCode => Object.hash(id, username, currentWriter, gender, birthDay,
+      avatar, birthPlace, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is JournalWriter &&
           other.id == this.id &&
           other.username == this.username &&
+          other.currentWriter == this.currentWriter &&
           other.gender == this.gender &&
           other.birthDay == this.birthDay &&
           other.avatar == this.avatar &&
@@ -309,6 +341,7 @@ class JournalWriter extends DataClass implements Insertable<JournalWriter> {
 class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
   final Value<int> id;
   final Value<String> username;
+  final Value<int> currentWriter;
   final Value<int> gender;
   final Value<DateTime> birthDay;
   final Value<String?> avatar;
@@ -318,6 +351,7 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
   const JournalWriterTableCompanion({
     this.id = const Value.absent(),
     this.username = const Value.absent(),
+    this.currentWriter = const Value.absent(),
     this.gender = const Value.absent(),
     this.birthDay = const Value.absent(),
     this.avatar = const Value.absent(),
@@ -328,6 +362,7 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
   JournalWriterTableCompanion.insert({
     this.id = const Value.absent(),
     required String username,
+    required int currentWriter,
     required int gender,
     required DateTime birthDay,
     this.avatar = const Value.absent(),
@@ -335,11 +370,13 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   })  : username = Value(username),
+        currentWriter = Value(currentWriter),
         gender = Value(gender),
         birthDay = Value(birthDay);
   static Insertable<JournalWriter> custom({
     Expression<int>? id,
     Expression<String>? username,
+    Expression<int>? currentWriter,
     Expression<int>? gender,
     Expression<DateTime>? birthDay,
     Expression<String>? avatar,
@@ -350,6 +387,7 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (username != null) 'username': username,
+      if (currentWriter != null) 'current_writer': currentWriter,
       if (gender != null) 'gender': gender,
       if (birthDay != null) 'birth_day': birthDay,
       if (avatar != null) 'avatar': avatar,
@@ -362,6 +400,7 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
   JournalWriterTableCompanion copyWith(
       {Value<int>? id,
       Value<String>? username,
+      Value<int>? currentWriter,
       Value<int>? gender,
       Value<DateTime>? birthDay,
       Value<String?>? avatar,
@@ -371,6 +410,7 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
     return JournalWriterTableCompanion(
       id: id ?? this.id,
       username: username ?? this.username,
+      currentWriter: currentWriter ?? this.currentWriter,
       gender: gender ?? this.gender,
       birthDay: birthDay ?? this.birthDay,
       avatar: avatar ?? this.avatar,
@@ -388,6 +428,9 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
     }
     if (username.present) {
       map['username'] = Variable<String>(username.value);
+    }
+    if (currentWriter.present) {
+      map['current_writer'] = Variable<int>(currentWriter.value);
     }
     if (gender.present) {
       map['gender'] = Variable<int>(gender.value);
@@ -415,6 +458,7 @@ class JournalWriterTableCompanion extends UpdateCompanion<JournalWriter> {
     return (StringBuffer('JournalWriterTableCompanion(')
           ..write('id: $id, ')
           ..write('username: $username, ')
+          ..write('currentWriter: $currentWriter, ')
           ..write('gender: $gender, ')
           ..write('birthDay: $birthDay, ')
           ..write('avatar: $avatar, ')
@@ -442,6 +486,7 @@ typedef $$JournalWriterTableTableCreateCompanionBuilder
     = JournalWriterTableCompanion Function({
   Value<int> id,
   required String username,
+  required int currentWriter,
   required int gender,
   required DateTime birthDay,
   Value<String?> avatar,
@@ -453,6 +498,7 @@ typedef $$JournalWriterTableTableUpdateCompanionBuilder
     = JournalWriterTableCompanion Function({
   Value<int> id,
   Value<String> username,
+  Value<int> currentWriter,
   Value<int> gender,
   Value<DateTime> birthDay,
   Value<String?> avatar,
@@ -475,6 +521,9 @@ class $$JournalWriterTableTableFilterComposer
 
   ColumnFilters<String> get username => $composableBuilder(
       column: $table.username, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get currentWriter => $composableBuilder(
+      column: $table.currentWriter, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get gender => $composableBuilder(
       column: $table.gender, builder: (column) => ColumnFilters(column));
@@ -510,6 +559,10 @@ class $$JournalWriterTableTableOrderingComposer
   ColumnOrderings<String> get username => $composableBuilder(
       column: $table.username, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get currentWriter => $composableBuilder(
+      column: $table.currentWriter,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get gender => $composableBuilder(
       column: $table.gender, builder: (column) => ColumnOrderings(column));
 
@@ -543,6 +596,9 @@ class $$JournalWriterTableTableAnnotationComposer
 
   GeneratedColumn<String> get username =>
       $composableBuilder(column: $table.username, builder: (column) => column);
+
+  GeneratedColumn<int> get currentWriter => $composableBuilder(
+      column: $table.currentWriter, builder: (column) => column);
 
   GeneratedColumn<int> get gender =>
       $composableBuilder(column: $table.gender, builder: (column) => column);
@@ -594,6 +650,7 @@ class $$JournalWriterTableTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> username = const Value.absent(),
+            Value<int> currentWriter = const Value.absent(),
             Value<int> gender = const Value.absent(),
             Value<DateTime> birthDay = const Value.absent(),
             Value<String?> avatar = const Value.absent(),
@@ -604,6 +661,7 @@ class $$JournalWriterTableTableTableManager extends RootTableManager<
               JournalWriterTableCompanion(
             id: id,
             username: username,
+            currentWriter: currentWriter,
             gender: gender,
             birthDay: birthDay,
             avatar: avatar,
@@ -614,6 +672,7 @@ class $$JournalWriterTableTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String username,
+            required int currentWriter,
             required int gender,
             required DateTime birthDay,
             Value<String?> avatar = const Value.absent(),
@@ -624,6 +683,7 @@ class $$JournalWriterTableTableTableManager extends RootTableManager<
               JournalWriterTableCompanion.insert(
             id: id,
             username: username,
+            currentWriter: currentWriter,
             gender: gender,
             birthDay: birthDay,
             avatar: avatar,

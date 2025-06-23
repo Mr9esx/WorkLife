@@ -26,13 +26,14 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void dispose() {
     super.dispose();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-        overlays: SystemUiOverlay.values);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
   }
 
   _initAsync() async {
-    var isNew = await SpUtil.getData<bool>(CacheConstants.guideKey,
-        defValue: !AppConfig.isShowWelcome);
+    var isNew = await SpUtil.getData<bool>(CacheConstants.guideKey, defValue: !AppConfig.isShowWelcome);
+
+    if (!mounted) return; // 检查widget是否仍然挂载
+
     setState(() {
       /// 是否显示引导页。
       if (isNew) {
@@ -44,7 +45,7 @@ class _SplashPageState extends State<SplashPage> {
     });
 
     /// 调试阶段，直接跳过此组件
-    if (AppConfig.notSplash && context.mounted) {
+    if (AppConfig.notSplash && mounted) {
       Navigator.pushReplacementNamed(context, RouteName.appMain);
     }
   }

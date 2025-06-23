@@ -41,8 +41,9 @@ class SpUtil {
         resData = await _prefs?.setDouble(key, value as double);
         break;
       default:
+        resData = false;
     }
-    return resData as bool;
+    return resData ?? false;
   }
 
   /// 设置list类型到缓存中去

@@ -5,6 +5,9 @@ import 'package:WeekLife/presentation/pages/app_main/app_main.dart';
 import 'package:WeekLife/presentation/pages/splash/splash.dart';
 import 'package:WeekLife/presentation/pages/test_demo/test_demo.dart';
 import 'package:WeekLife/presentation/pages/Login/Login.dart';
+import 'package:WeekLife/presentation/pages/intro/intro.dart';
+import 'package:WeekLife/presentation/pages/intro/intro-create.dart';
+import 'package:WeekLife/presentation/pages/app_main/journal/singleview/single.dart';
 
 final String initialRoute = RouteName.splashPage; // 初始默认显示的路由
 
@@ -17,4 +20,7 @@ final Map<String,
   RouteName.error: (context, {params}) => ErrorPage(params: params),
   RouteName.testDemo: (context, {params}) => TestDemo(params: params),
   RouteName.login: (context, {params}) => Login(params: params),
+  RouteName.intro: (context, {params}) => Intro(params: params),
+  RouteName.introCreate: (context, {params}) => IntroCreate(params: params),
+  RouteName.singleJournal: (context, {params}) => SingleWeekJournalPage(params: params),
 };

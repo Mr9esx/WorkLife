@@ -6,6 +6,7 @@ abstract class IJournalWriterDao {
   /// 创建新的 Writer
   /// 
   /// [username] 用户名（必填）
+  /// [currentWriter] 当前用户标识（必填）
   /// [gender] 性别（必填，1:男，2:女）
   /// [birthDay] 生日（必填，格式：YYYYMMDD）
   /// [avatar] 头像（可选）
@@ -14,30 +15,30 @@ abstract class IJournalWriterDao {
   /// 返回新创建的 Writer 的 ID
   Future<int> createWriter({
     required String username,
+    required int currentWriter,
     required int gender,
     required DateTime birthDay,
     String? avatar,
     String? birthPlace,
   });
 
-  /// 批量创建 Writer
+  /// 设置当前 Writer
   /// 
-  /// [writerMaps] Writer 数据列表
-  /// 返回新创建的 Writer 的 ID 列表
-  Future<List<int>> createWriters(List<Map<String, dynamic>> writerMaps);
+  /// [id] Writer 的 ID
+  /// 返回是否设置成功
+  Future<Error> setCurrentWriter(int id);
+
+  /// 获取当前 Writer
+  /// 
+  /// 返回当前用户信息
+  Future<JournalWriterData> getCurrentWriter();
 
   /// 根据 ID 获取 Writer
   /// 
   /// [id] Writer 的 ID
   /// 返回 Writer 对象，如果不存在则返回 null
   Future<JournalWriterData?> getWriterById(int id);
-
-  /// 根据用户名获取 Writer
-  /// 
-  /// [username] 用户名
-  /// 返回 Writer 对象，如果不存在则返回 null
-  Future<JournalWriterData?> getWriterByUsername(String username);
-
+  
   /// 获取所有 Writer
   /// 
   /// [limit] 限制返回数量（可选）
@@ -66,4 +67,10 @@ abstract class IJournalWriterDao {
   /// [id] Writer 的 ID
   /// 返回是否删除成功
   Future<bool> deleteWriter(int id);
+
+
+  /// 获取 Writer 数量
+  /// 
+  /// 返回 Writer 数量
+  Future<int> getWriterCount();
 } 

@@ -3,6 +3,12 @@ class RouteName {
   /// app主页
   static String appMain = '/appMain';
 
+  // 引导页 - 开始记录
+  static String intro = '/intro';
+
+  // 引导页 - 创建
+  static String introCreate = '/introCreate';
+
   /// 闪屏页
   static String splashPage = '/splashPage';
 
@@ -17,4 +23,7 @@ class RouteName {
 
   /// 注册页
   static String register = '/register';
+
+  /// 周记页
+  static String singleJournal = '/single_journal';
 }

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:WeekLife/presentation/pages/app_main/home/provider/counterStore.p.dart';
 import 'package:WeekLife/core/utils/index.dart';
 
 class TestDemo extends StatefulWidget {
-  const TestDemo({Key? key, this.params}) : super(key: key);
+  const TestDemo({super.key, this.params});
   final dynamic params;
 
   @override
@@ -67,7 +68,12 @@ class _TestDemoState extends State<TestDemo> {
     return Container(
       margin: const EdgeInsets.only(top: 10),
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: onPressed != null
+            ? () {
+                HapticFeedback.selectionClick();
+                onPressed();
+              }
+            : null,
         child: Text(
           text,
           style: TextStyle(fontSize: 22.sp),

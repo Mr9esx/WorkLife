@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class BasicBtn extends StatelessWidget {
   const BasicBtn({
-    Key? key,
+    super.key,
     this.onPressed,
     required this.title,
     this.color,
     this.highlightColor,
-  }) : super(key: key);
+  });
 
   /// 点击事件
   final void Function()? onPressed;
@@ -26,16 +27,21 @@ class BasicBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       style: ButtonStyle(
-        padding: MaterialStateProperty.all(
+        padding: WidgetStateProperty.all(
           EdgeInsets.symmetric(vertical: 20.w),
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(44),
           ),
         ),
       ),
-      onPressed: onPressed,
+      onPressed: onPressed != null
+          ? () {
+              HapticFeedback.selectionClick();
+              onPressed!();
+            }
+          : null,
       child: Container(
         alignment: Alignment.center,
         width: double.infinity,

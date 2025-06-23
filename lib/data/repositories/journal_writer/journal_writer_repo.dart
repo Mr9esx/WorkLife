@@ -30,7 +30,7 @@ class JournalWriterRepo extends _$JournalWriterRepo implements IJournalWriterRep
   /// 每次修改数据库结构时，需要增加版本号
   /// 例如：添加新表、修改表结构等
   @override  // @override 表示重写父类的方法
-  int get schemaVersion => 1;  // 当前数据库版本为 1
+  int get schemaVersion => 2;  // 当前数据库版本为 2，添加了 currentWriter 字段
 
   /// 数据库迁移策略
   /// 用于处理数据库版本升级时的数据迁移
@@ -47,15 +47,10 @@ class JournalWriterRepo extends _$JournalWriterRepo implements IJournalWriterRep
         // from: 当前版本
         // to: 目标版本
         // 在这里处理数据库升级逻辑
-        // 例如：
-        // if (from < 2) {
-        //   // 添加新表
-        //   await m.createTable(newTable);
-        // }
-        // if (from < 3) {
-        //   // 修改表结构
-        //   await m.addColumn(oldTable, newColumn);
-        // }
+        if (from < 2) {
+          // 版本 1 到 2：添加 currentWriter 字段
+          await m.addColumn(journalWriterTable, journalWriterTable.currentWriter);
+        }
       },
     );
   }
@@ -96,6 +91,8 @@ class JournalWriterRepo extends _$JournalWriterRepo implements IJournalWriterRep
             return (t) => t.id;
           case 'username':
             return (t) => t.username;
+          case 'currentWriter':
+            return (t) => t.currentWriter;
           case 'createdAt':
             return (t) => t.createdAt;
           case 'updatedAt':
@@ -140,6 +137,15 @@ class JournalWriterRepo extends _$JournalWriterRepo implements IJournalWriterRep
   @override
   Future<int> deleteWriter(int id) async {
     return (delete(journalWriterTable)..where((t) => t.id.equals(id))).go();
+  }
+
+  /// 获取 Writer 数量
+  @override
+  Future<int> getWriterCount() async {
+    final query = selectOnly(journalWriterTable)
+      ..addColumns([journalWriterTable.id.count()]);
+    final result = await query.getSingle();
+    return result.read(journalWriterTable.id.count()) ?? 0;
   }
 
   @override

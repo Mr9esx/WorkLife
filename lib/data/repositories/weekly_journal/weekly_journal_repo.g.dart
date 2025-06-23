@@ -24,6 +24,11 @@ class $WeeklyJournalTableTable extends WeeklyJournalTable
   late final GeneratedColumn<int> writerId = GeneratedColumn<int>(
       'writer_id', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+      'year', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
   static const VerificationMeta _weekNumberMeta =
       const VerificationMeta('weekNumber');
   @override
@@ -86,6 +91,7 @@ class $WeeklyJournalTableTable extends WeeklyJournalTable
   List<GeneratedColumn> get $columns => [
         id,
         writerId,
+        year,
         weekNumber,
         title,
         content,
@@ -115,6 +121,12 @@ class $WeeklyJournalTableTable extends WeeklyJournalTable
           writerId.isAcceptableOrUnknown(data['writer_id']!, _writerIdMeta));
     } else if (isInserting) {
       context.missing(_writerIdMeta);
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+          _yearMeta, year.isAcceptableOrUnknown(data['year']!, _yearMeta));
+    } else if (isInserting) {
+      context.missing(_yearMeta);
     }
     if (data.containsKey('week_number')) {
       context.handle(
@@ -178,6 +190,10 @@ class $WeeklyJournalTableTable extends WeeklyJournalTable
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {writerId, year, weekNumber},
+      ];
+  @override
   WeeklyJournal map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return WeeklyJournal(
@@ -185,6 +201,8 @@ class $WeeklyJournalTableTable extends WeeklyJournalTable
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       writerId: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}writer_id'])!,
+      year: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}year'])!,
       weekNumber: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}week_number'])!,
       title: attachedDatabase.typeMapping
@@ -217,6 +235,7 @@ class $WeeklyJournalTableTable extends WeeklyJournalTable
 class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
   final int id;
   final int writerId;
+  final int year;
   final int weekNumber;
   final String title;
   final String content;
@@ -230,6 +249,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
   const WeeklyJournal(
       {required this.id,
       required this.writerId,
+      required this.year,
       required this.weekNumber,
       required this.title,
       required this.content,
@@ -245,6 +265,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['writer_id'] = Variable<int>(writerId);
+    map['year'] = Variable<int>(year);
     map['week_number'] = Variable<int>(weekNumber);
     map['title'] = Variable<String>(title);
     map['content'] = Variable<String>(content);
@@ -266,6 +287,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
     return WeeklyJournalTableCompanion(
       id: Value(id),
       writerId: Value(writerId),
+      year: Value(year),
       weekNumber: Value(weekNumber),
       title: Value(title),
       content: Value(content),
@@ -289,6 +311,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
     return WeeklyJournal(
       id: serializer.fromJson<int>(json['id']),
       writerId: serializer.fromJson<int>(json['writerId']),
+      year: serializer.fromJson<int>(json['year']),
       weekNumber: serializer.fromJson<int>(json['weekNumber']),
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String>(json['content']),
@@ -307,6 +330,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'writerId': serializer.toJson<int>(writerId),
+      'year': serializer.toJson<int>(year),
       'weekNumber': serializer.toJson<int>(weekNumber),
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String>(content),
@@ -323,6 +347,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
   WeeklyJournal copyWith(
           {int? id,
           int? writerId,
+          int? year,
           int? weekNumber,
           String? title,
           String? content,
@@ -336,6 +361,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
       WeeklyJournal(
         id: id ?? this.id,
         writerId: writerId ?? this.writerId,
+        year: year ?? this.year,
         weekNumber: weekNumber ?? this.weekNumber,
         title: title ?? this.title,
         content: content ?? this.content,
@@ -351,6 +377,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
     return WeeklyJournal(
       id: data.id.present ? data.id.value : this.id,
       writerId: data.writerId.present ? data.writerId.value : this.writerId,
+      year: data.year.present ? data.year.value : this.year,
       weekNumber:
           data.weekNumber.present ? data.weekNumber.value : this.weekNumber,
       title: data.title.present ? data.title.value : this.title,
@@ -370,6 +397,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
     return (StringBuffer('WeeklyJournal(')
           ..write('id: $id, ')
           ..write('writerId: $writerId, ')
+          ..write('year: $year, ')
           ..write('weekNumber: $weekNumber, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
@@ -385,14 +413,15 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
   }
 
   @override
-  int get hashCode => Object.hash(id, writerId, weekNumber, title, content,
-      mood, moodColor, pics, geo, createdAt, updatedAt, deletedAt);
+  int get hashCode => Object.hash(id, writerId, year, weekNumber, title,
+      content, mood, moodColor, pics, geo, createdAt, updatedAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is WeeklyJournal &&
           other.id == this.id &&
           other.writerId == this.writerId &&
+          other.year == this.year &&
           other.weekNumber == this.weekNumber &&
           other.title == this.title &&
           other.content == this.content &&
@@ -408,6 +437,7 @@ class WeeklyJournal extends DataClass implements Insertable<WeeklyJournal> {
 class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
   final Value<int> id;
   final Value<int> writerId;
+  final Value<int> year;
   final Value<int> weekNumber;
   final Value<String> title;
   final Value<String> content;
@@ -421,6 +451,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
   const WeeklyJournalTableCompanion({
     this.id = const Value.absent(),
     this.writerId = const Value.absent(),
+    this.year = const Value.absent(),
     this.weekNumber = const Value.absent(),
     this.title = const Value.absent(),
     this.content = const Value.absent(),
@@ -435,6 +466,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
   WeeklyJournalTableCompanion.insert({
     this.id = const Value.absent(),
     required int writerId,
+    required int year,
     required int weekNumber,
     required String title,
     required String content,
@@ -446,6 +478,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
   })  : writerId = Value(writerId),
+        year = Value(year),
         weekNumber = Value(weekNumber),
         title = Value(title),
         content = Value(content),
@@ -456,6 +489,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
   static Insertable<WeeklyJournal> custom({
     Expression<int>? id,
     Expression<int>? writerId,
+    Expression<int>? year,
     Expression<int>? weekNumber,
     Expression<String>? title,
     Expression<String>? content,
@@ -470,6 +504,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (writerId != null) 'writer_id': writerId,
+      if (year != null) 'year': year,
       if (weekNumber != null) 'week_number': weekNumber,
       if (title != null) 'title': title,
       if (content != null) 'content': content,
@@ -486,6 +521,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
   WeeklyJournalTableCompanion copyWith(
       {Value<int>? id,
       Value<int>? writerId,
+      Value<int>? year,
       Value<int>? weekNumber,
       Value<String>? title,
       Value<String>? content,
@@ -499,6 +535,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
     return WeeklyJournalTableCompanion(
       id: id ?? this.id,
       writerId: writerId ?? this.writerId,
+      year: year ?? this.year,
       weekNumber: weekNumber ?? this.weekNumber,
       title: title ?? this.title,
       content: content ?? this.content,
@@ -520,6 +557,9 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
     }
     if (writerId.present) {
       map['writer_id'] = Variable<int>(writerId.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
     }
     if (weekNumber.present) {
       map['week_number'] = Variable<int>(weekNumber.value);
@@ -559,6 +599,7 @@ class WeeklyJournalTableCompanion extends UpdateCompanion<WeeklyJournal> {
     return (StringBuffer('WeeklyJournalTableCompanion(')
           ..write('id: $id, ')
           ..write('writerId: $writerId, ')
+          ..write('year: $year, ')
           ..write('weekNumber: $weekNumber, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
@@ -590,6 +631,7 @@ typedef $$WeeklyJournalTableTableCreateCompanionBuilder
     = WeeklyJournalTableCompanion Function({
   Value<int> id,
   required int writerId,
+  required int year,
   required int weekNumber,
   required String title,
   required String content,
@@ -605,6 +647,7 @@ typedef $$WeeklyJournalTableTableUpdateCompanionBuilder
     = WeeklyJournalTableCompanion Function({
   Value<int> id,
   Value<int> writerId,
+  Value<int> year,
   Value<int> weekNumber,
   Value<String> title,
   Value<String> content,
@@ -631,6 +674,9 @@ class $$WeeklyJournalTableTableFilterComposer
 
   ColumnFilters<int> get writerId => $composableBuilder(
       column: $table.writerId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get weekNumber => $composableBuilder(
       column: $table.weekNumber, builder: (column) => ColumnFilters(column));
@@ -678,6 +724,9 @@ class $$WeeklyJournalTableTableOrderingComposer
   ColumnOrderings<int> get writerId => $composableBuilder(
       column: $table.writerId, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get year => $composableBuilder(
+      column: $table.year, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get weekNumber => $composableBuilder(
       column: $table.weekNumber, builder: (column) => ColumnOrderings(column));
 
@@ -723,6 +772,9 @@ class $$WeeklyJournalTableTableAnnotationComposer
 
   GeneratedColumn<int> get writerId =>
       $composableBuilder(column: $table.writerId, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
 
   GeneratedColumn<int> get weekNumber => $composableBuilder(
       column: $table.weekNumber, builder: (column) => column);
@@ -786,6 +838,7 @@ class $$WeeklyJournalTableTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<int> writerId = const Value.absent(),
+            Value<int> year = const Value.absent(),
             Value<int> weekNumber = const Value.absent(),
             Value<String> title = const Value.absent(),
             Value<String> content = const Value.absent(),
@@ -800,6 +853,7 @@ class $$WeeklyJournalTableTableTableManager extends RootTableManager<
               WeeklyJournalTableCompanion(
             id: id,
             writerId: writerId,
+            year: year,
             weekNumber: weekNumber,
             title: title,
             content: content,
@@ -814,6 +868,7 @@ class $$WeeklyJournalTableTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required int writerId,
+            required int year,
             required int weekNumber,
             required String title,
             required String content,
@@ -828,6 +883,7 @@ class $$WeeklyJournalTableTableTableManager extends RootTableManager<
               WeeklyJournalTableCompanion.insert(
             id: id,
             writerId: writerId,
+            year: year,
             weekNumber: weekNumber,
             title: title,
             content: content,

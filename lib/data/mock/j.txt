@@ -1,0 +1,22 @@
+[{
+  "week": 1,
+  "status": 
+}]
+
+
+{
+    JournalStatusUnrecorded = 1,        // 未记录
+    JournalStatusRecorded = 2,          // 已记录
+    JournalStatusUnrecordable = 3       // 不可记录（未到可记录的周份）
+}
+
+{
+  RecordTypeJournal = ''
+  RecordTypeTodo = ''
+}
+
+1. 从数据库获取当前用户的基本信息：名称、出生年份。
+2. 获取当前的周份、年份。
+3. 读取用户今年每周的周记信息（基础信息）。
+4. 把周记基础信息和年份、当前周份，丢给周选择器组件。
+5. 周选择器基于基础信息生成每周item。

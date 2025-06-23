@@ -1,4 +1,5 @@
 /// Writer 相关异常定义
+library;
 
 /// Writer 数据验证异常
 class WriterValidationException implements Exception {

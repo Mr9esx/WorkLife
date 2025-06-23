@@ -12,6 +12,9 @@ class JournalWriterTable extends Table {  // 继承 Table 类，表示这是一�
   // 用户名，唯一约束
   TextColumn get username => text().unique()();
 
+  // 当前用户，唯一约束
+  IntColumn get currentWriter => integer().unique()();
+
   // 性别，文本类型
   IntColumn get gender => integer()();
 

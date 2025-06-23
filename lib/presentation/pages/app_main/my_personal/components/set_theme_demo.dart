@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:WeekLife/presentation/blocs/theme/theme_bloc.dart';
 import 'package:WeekLife/presentation/blocs/theme/theme_event.dart';
@@ -26,8 +27,7 @@ class _SetThemeDemoState extends State<SetThemeDemo> {
                 btnWidget('切换粉色主题', themePink, Colors.pink),
                 btnWidget('切换蓝灰主题', themeBlueGrey, Colors.blueGrey),
                 btnWidget('切换天空蓝主题', themeLightBlue, Colors.lightBlue),
-                btnWidget('暗模式', ThemeData.dark(),
-                    ThemeData.dark().colorScheme.background),
+                btnWidget('暗模式', ThemeData.dark(), ThemeData.dark().colorScheme.surface),
                 grayBtn(state.isGrayTheme),
               ],
             ),
@@ -45,6 +45,7 @@ class _SetThemeDemoState extends State<SetThemeDemo> {
         style: const TextStyle(fontSize: 22),
       ),
       onPressed: () {
+        HapticFeedback.selectionClick();
         context.read<GlobalBloc>().add(ToggleGrayThemeEvent(isGray: !isGray));
       },
     );
@@ -53,10 +54,11 @@ class _SetThemeDemoState extends State<SetThemeDemo> {
   Widget btnWidget(String title, ThemeData themeData, Color color) {
     return ElevatedButton(
       onPressed: () {
+        HapticFeedback.selectionClick();
         context.read<ThemeBloc>().add(ThemeChangedEvent(themeData));
       },
       style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.all(color),
+        backgroundColor: WidgetStateProperty.all(color),
       ),
       child: Text(
         title,

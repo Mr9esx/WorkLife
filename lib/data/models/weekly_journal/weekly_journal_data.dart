@@ -3,6 +3,9 @@ import 'package:WeekLife/data/repositories/weekly_journal/weekly_journal_repo.da
 
 class WeeklyJournalData {
   final int? id;
+  final int writerId;
+  final int year;
+  final int weekNumber;
   final String title;
   final String content;
   final int mood;
@@ -15,6 +18,9 @@ class WeeklyJournalData {
 
   const WeeklyJournalData({
     this.id,
+    required this.writerId,
+    required this.year,
+    required this.weekNumber,
     required this.title,
     required this.content,
     required this.mood,
@@ -28,6 +34,9 @@ class WeeklyJournalData {
 
   factory WeeklyJournalData.fromDb(WeeklyJournal weeklyJournal) => WeeklyJournalData(
     id: weeklyJournal.id,
+    writerId: weeklyJournal.writerId,
+    year: weeklyJournal.year,
+    weekNumber: weeklyJournal.weekNumber,
     title: weeklyJournal.title,
     content: weeklyJournal.content,
     mood: weeklyJournal.mood,
@@ -41,6 +50,9 @@ class WeeklyJournalData {
 
   WeeklyJournalTableCompanion toCompanion() => WeeklyJournalTableCompanion(
     id: id == null ? const Value.absent() : Value(id!),
+    writerId: Value(writerId),
+    year: Value(year),
+    weekNumber: Value(weekNumber),
     title: Value(title),
     content: Value(content),
     mood: Value(mood),
@@ -54,6 +66,9 @@ class WeeklyJournalData {
 
   WeeklyJournalData copyWith({
     int? id,
+    int? writerId,
+    int? year,
+    int? weekNumber,
     String? title,
     String? content,
     int? mood,
@@ -66,6 +81,9 @@ class WeeklyJournalData {
   }) {
     return WeeklyJournalData(
       id: id ?? this.id,
+      writerId: writerId ?? this.writerId,
+      year: year ?? this.year,
+      weekNumber: weekNumber ?? this.weekNumber,
       title: title ?? this.title,
       content: content ?? this.content,
       mood: mood ?? this.mood,

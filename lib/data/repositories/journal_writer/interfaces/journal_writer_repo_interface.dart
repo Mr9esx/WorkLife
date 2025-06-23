@@ -27,6 +27,10 @@ abstract class IJournalWriterRepository {
   /// 返回删除的记录数
   Future<int> deleteWriter(int id);
 
+  /// 获取 Writer 数量
+  /// 返回 Writer 数量
+  Future<int> getWriterCount();
+
   /// 开始事务
   /// [action] 事务中执行的操作
   /// [requireNew] 是否要求新的事务
